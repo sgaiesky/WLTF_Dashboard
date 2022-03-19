@@ -14,4 +14,5 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## test file to try Git integrations
-
+#another test from home pc
+#one more change
