@@ -42,7 +42,8 @@ dat.tbl <- dat %>%
   group_by(Athlete, Type, Season) %>%
   summarise(PB = max(Score),
             Average = mean(Score)) %>%
-  mutate_if(is.numeric, round, 0)
+  mutate_if(is.numeric, round, 0) %>%
+  ungroup()
 
 pb.tbl <- dat.tbl %>%
   select(!Average) %>%
