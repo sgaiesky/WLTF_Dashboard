@@ -8,6 +8,7 @@ library(lubridate)
 athlete <- c("Max", "Emmanuel")
 tests <- c("CMJ (mm)", "LCMJ (mm)", "RCMJ (mm)")
 season <- c("21-22", "20-21", "19-20")
+date.range <- as.Date(c("2020-01-01", "2022-01-01"))
 
 url <- c("https://docs.google.com/spreadsheets/d/1fiRUwYv8FtysQQg7Z25Py-FW6KJeuMeoFCXuPmf89EE/edit?usp=sharing")
 dat <- gsheet::gsheet2tbl(url)
@@ -24,13 +25,29 @@ dat <- dat %>%
            Season %in% season)
 
 jump.graph <- ggplot(data = dat, mapping = aes(x = Date, y = Score)) +
-  geom_point(mapping = aes(colour = Athlete, shape = Type)) +
-  geom_line(mapping = aes(colour = Athlete, group = interaction(Athlete, Type))) +
+  geom_point(mapping = aes(colour = Type, shape = Athlete)) +
+  geom_line(mapping = aes(colour = Type, group = interaction(Athlete, Type))) +
   scale_x_date(date_breaks = "1 month",
                date_labels = "%B %Y") +
+  coord_cartesian(xlim = date.range) +
   labs(y = "Height (mm)",
        x = "Date") +
   guides(x = guide_axis(angle = 90)) +
   theme_classic()
 
 print(jump.graph)
+
+dat.tbl <- dat %>%
+  filter(Date >= date.range[1] & Date <= date.range[2]) %>%
+  group_by(Athlete, Type, Season) %>%
+  summarise(PB = max(Score),
+            Average = mean(Score)) %>%
+  mutate_if(is.numeric, round, 0)
+
+pb.tbl <- dat.tbl %>%
+  select(!Average) %>%
+  pivot_wider(names_from = Type, values_from = PB)
+
+avg.tbl <- dat.tbl %>%
+  select(!PB) %>%
+  pivot_wider(names_from = Type, values_from = Average)
