@@ -5,9 +5,9 @@ library(gsheet)
 library(magrittr)
 library(lubridate)
 
-athlete <- c("Max", "Emmanuel")
-tests <- c("CMJ (mm)", "LCMJ (mm)", "RCMJ (mm)")
-season <- c("21-22", "20-21", "19-20")
+athlete <- c("Holly")
+tests <- c("CMJ (mm)", "SJ (mm)")
+season <- c("21-22")
 date.range <- as.Date(c("2020-01-01", "2022-01-01"))
 
 url <- c("https://docs.google.com/spreadsheets/d/1fiRUwYv8FtysQQg7Z25Py-FW6KJeuMeoFCXuPmf89EE/edit?usp=sharing")

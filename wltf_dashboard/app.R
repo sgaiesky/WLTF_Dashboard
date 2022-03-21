@@ -3,6 +3,7 @@ library(gsheet)
 library(magrittr)
 library(lubridate)
 library(shiny)
+library(bslib)
 
 ## data creation
 
@@ -16,6 +17,7 @@ dat$Season %<>% as.factor()
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
+    theme = bs_theme(bootswatch = "minty"),
 
     # Application title
     titlePanel("West London Track & Field Athlete Monitering"),
@@ -25,15 +27,19 @@ ui <- fluidPage(
         sidebarPanel(
             selectInput("athlete",
                         "Select Athlete(s):",
-                        choices = unique(dat$Athlete)),
+                        choices = unique(dat$Athlete),
+                        multiple = TRUE),
             dateRangeInput("date.range",
-                           "Select the dates of interest:"),
+                           "Select the dates of interest:",
+                           start = "2021-09-01",
+                           end = NULL),
             checkboxGroupInput("tests",
                                "Select the tests of interest:",
-                               choices = unique(dat$Type)),
-            checkboxGroupInput("season",
-                               "Select the seasons of interest:",
-                               choices = unique(dat$Season))
+                               choices = c("CMJ (mm)", "SJ (mm)",
+                                           "RCMJ (mm)", "LCMJ (mm)")),
+            #checkboxGroupInput("season",
+                               #"Select the seasons of interest:",
+                               #choices = unique(dat$Season))
         ),
 
         # Show a plot of the generated distribution
@@ -49,8 +55,10 @@ server <- function(input, output) {
     dat1 <- reactive({
         d <- dat %>%
             filter(Athlete %in% input$athlete &
-                   Type %in% input$tests &
-                   Season %in% input$season)
+                   Type %in% input$tests & 
+                   #Season %in% input$season &
+                       Date >= input$date.range[1] &
+                       Date <= input$date.range[2])
         
         d
     })
@@ -61,8 +69,11 @@ server <- function(input, output) {
         d <- dat1()
         
         jump.graph <- ggplot(data = d, mapping = aes(x = Date, y = Score)) +
-            geom_point(mapping = aes(colour = Type, shape = Athlete)) +
-            geom_line(mapping = aes(colour = Type, group = interaction(Athlete, Type))) +
+            geom_point(mapping = aes(colour = Type, shape = Athlete),
+                       size = 3) +
+            geom_line(mapping = aes(colour = Type, group = interaction(Athlete, Type),
+                                    linetype = Athlete),
+                      size = 1.2) +
             scale_x_date(date_breaks = "1 month",
                          date_labels = "%B %Y") +
             labs(y = "Height (mm)",
