@@ -55,6 +55,11 @@ ui <- navbarPage("West London Track & Field Athlete Monitoring",
     fluidRow(column(offset = 4, width = 8, h4("Average Jumps"))),
     
     fluidRow(column(offset = 4, width = 8, tableOutput("avg.tbl")))
+    ),
+    tabPanel("Performances",
+             fluidRow(column(width = 12, h1("COMING SOON!")
+                             )
+                      )
     )
 )
 
@@ -119,7 +124,7 @@ server <- function(input, output) {
             ungroup() %>%
             select(!PB) %>%
             pivot_wider(names_from = Type, values_from = Average)
-    }, striped = TRUE, bordered = TRUE, width = "85%")
+    }, striped = TRUE, bordered = TRUE, width = "85%", align = "c")
     
 }
 
