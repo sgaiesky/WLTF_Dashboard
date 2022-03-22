@@ -16,11 +16,10 @@ dat$Type %<>% as.factor()
 dat$Season %<>% as.factor()
 
 # Define UI for application that draws a histogram
-ui <- fluidPage(
-    shinythemes::themeSelector(),
+ui <- navbarPage("West London Track & Field Athlete Monitoring",
 
-    # Application title
-    titlePanel("West London Track & Field Athlete Monitoring"),
+    tabPanel("Jump Testing",
+    shinythemes::themeSelector(),
 
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
@@ -46,11 +45,19 @@ ui <- fluidPage(
         # Show a plot of the generated distribution
         mainPanel(
            plotOutput("jump.graph"),
-           tableOutput("pb.tbl"),
-           tableOutput("avg.tbl")
+           width = 8
         )
+    ),
+    fluidRow(column(offset = 4, width = 8, h4("Personal Best Jumps"))),
+    
+    fluidRow(column(offset = 4, width = 8, tableOutput("pb.tbl"))),
+    
+    fluidRow(column(offset = 4, width = 8, h4("Average Jumps"))),
+    
+    fluidRow(column(offset = 4, width = 8, tableOutput("avg.tbl")))
     )
 )
+
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
@@ -81,7 +88,8 @@ server <- function(input, output) {
             labs(y = "Height (mm)",
                  x = "Date") +
             guides(x = guide_axis(angle = 90)) +
-            theme_classic()
+            theme_classic() +
+            theme(axis.text.x = element_text(face = "bold"))
         
         print(jump.graph)
     })
@@ -98,7 +106,7 @@ server <- function(input, output) {
             select(!Average) %>%
             pivot_wider(names_from = Type, values_from = PB)
             
-    })
+    }, striped = TRUE, bordered = TRUE, width = "85%", align = "c")
     
     output$avg.tbl <- renderTable({
         d <- dat1()
@@ -111,7 +119,7 @@ server <- function(input, output) {
             ungroup() %>%
             select(!PB) %>%
             pivot_wider(names_from = Type, values_from = Average)
-    })
+    }, striped = TRUE, bordered = TRUE, width = "85%")
     
 }
 
