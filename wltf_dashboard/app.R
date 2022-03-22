@@ -3,7 +3,7 @@ library(gsheet)
 library(magrittr)
 library(lubridate)
 library(shiny)
-library(bslib)
+library(shinythemes)
 
 ## data creation
 
@@ -17,18 +17,19 @@ dat$Season %<>% as.factor()
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-    theme = bs_theme(bootswatch = "minty"),
+    shinythemes::themeSelector(),
 
     # Application title
-    titlePanel("West London Track & Field Athlete Monitering"),
+    titlePanel("West London Track & Field Athlete Monitoring"),
 
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            selectInput("athlete",
-                        "Select Athlete(s):",
-                        choices = unique(dat$Athlete),
-                        multiple = TRUE),
+            selectizeInput("athlete",
+                           "Select Athlete(s):",
+                           choices = unique(dat$Athlete),
+                           multiple = TRUE,
+                           options = list(maxItems = 3)),
             dateRangeInput("date.range",
                            "Select the dates of interest:",
                            start = "2021-09-01",
@@ -44,7 +45,9 @@ ui <- fluidPage(
 
         # Show a plot of the generated distribution
         mainPanel(
-           plotOutput("jump.graph")
+           plotOutput("jump.graph"),
+           tableOutput("pb.tbl"),
+           tableOutput("avg.tbl")
         )
     )
 )
@@ -63,7 +66,6 @@ server <- function(input, output) {
         d
     })
 
-    
     output$jump.graph <- renderPlot({
         
         d <- dat1()
@@ -83,6 +85,34 @@ server <- function(input, output) {
         
         print(jump.graph)
     })
+    
+    output$pb.tbl <- renderTable({
+        d <- dat1()
+        
+        pb.tbl <- d %>%
+            group_by(Athlete, Type, Season) %>%
+            summarise(PB = max(Score),
+                      Average = mean(Score)) %>%
+            mutate_if(is.numeric, round, 0) %>%
+            ungroup() %>%
+            select(!Average) %>%
+            pivot_wider(names_from = Type, values_from = PB)
+            
+    })
+    
+    output$avg.tbl <- renderTable({
+        d <- dat1()
+        
+        avg.tbl <- d %>%
+            group_by(Athlete, Type, Season) %>%
+            summarise(PB = max(Score),
+                      Average = mean(Score)) %>%
+            mutate_if(is.numeric, round, 0) %>%
+            ungroup() %>%
+            select(!PB) %>%
+            pivot_wider(names_from = Type, values_from = Average)
+    })
+    
 }
 
 # Run the application 
