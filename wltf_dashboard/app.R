@@ -17,9 +17,10 @@ dat$Season %<>% as.factor()
 
 # Define UI for application that draws a histogram
 ui <- navbarPage("West London Track & Field Athlete Monitoring",
+                 theme = shinytheme("flatly"),
 
     tabPanel("Jump Testing",
-    shinythemes::themeSelector(),
+    
 
     # Sidebar with a slider input for number of bins 
     sidebarLayout(
@@ -40,6 +41,7 @@ ui <- navbarPage("West London Track & Field Athlete Monitoring",
             #checkboxGroupInput("season",
                                #"Select the seasons of interest:",
                                #choices = unique(dat$Season))
+            downloadButton("jump.report", "Generate Jump Report")
         ),
 
         # Show a plot of the generated distribution
@@ -91,10 +93,11 @@ server <- function(input, output) {
             scale_x_date(date_breaks = "1 month",
                          date_labels = "%B %Y") +
             labs(y = "Height (mm)",
-                 x = "Date") +
+                 x = "") +
             guides(x = guide_axis(angle = 90)) +
             theme_classic() +
-            theme(axis.text.x = element_text(face = "bold"))
+            theme(axis.text.x = element_text(face = "bold", size = 12),
+                  legend.text = element_text(size = 12))
         
         print(jump.graph)
     })

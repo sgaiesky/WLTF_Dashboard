@@ -1,0 +1,361 @@
+---
+title: "2021 Jump Report"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+options(knitr.kable.NA = '')
+```
+
+```{r}
+#Library
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(scales))
+suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(xts))
+suppressPackageStartupMessages(library(magrittr))
+suppressPackageStartupMessages(library(RColorBrewer))
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(kableExtra))
+suppressPackageStartupMessages(library(ggrepel))
+suppressPackageStartupMessages(library(readxl))
+suppressPackageStartupMessages(library(tidyquant))
+
+#Functions/themes
+round_any = function(x, accuracy, f=round){f(x/ accuracy) * accuracy}
+theme_WLTF <-   theme_classic() +
+  theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+        legend.title.align = 0.5,
+        axis.title.x = element_text(size = 12, face = "bold"),
+        axis.title.y = element_text(size = 12, face = "bold"))
+
+#File path
+file <- c("WLTF_MASTER.xlsx")
+
+summary_tbl <- readxl::read_xlsx(file, sheet = "summary",
+                       col_types = c("date", "text", "text", "numeric", "text", "text", 
+                                     "numeric", "text", "numeric", "numeric", "numeric", 
+                                     "numeric", "numeric", "numeric", "numeric", "numeric", 
+                                     "numeric", "numeric", "numeric", "numeric")
+                      )
+
+name <- c("Holly")
+
+```
+
+### Date: `r format(Sys.Date(), "%d/%m/%Y")`
+### Name: `r name`
+
+This report details the jump data collected by the coaching staff over the course `r name` has been with WLTF. Season bests/averages as well as monthly bests/averages for all jumps can be found in the below figures. For further explanation contact Sean <sgaiesky@gmail.com>. 
+
+```{r}
+jump_tbl <- filter(summary_tbl, Athlete == name, Type == "CMJ (mm)" | Type == "SJ (mm)" | Type == "LCMJ (mm)" | Type == "RCMJ (mm)") %>%
+  select(Date, Athlete, Type, Score) %>%
+  drop_na(Score) %>%
+  mutate(Season = ifelse(
+    Date <= as.POSIXct("2020-08-31"), c("2019-2020"), 
+    ifelse(Date > as.POSIXct("2020-08-31") & Date <= as.POSIXct("2021-08-31"),
+           c("2020-2021"),
+           c("2021-2022")
+           ))) %>%
+  distinct()
+
+season_pbs <- jump_tbl %>%
+  group_by(Season, Type) %>%
+  summarise(Avg = mean(Score),
+            PB = max(Score)) %>%
+  pivot_wider(names_from = Type, values_from = Avg:PB) %>%
+  ungroup()
+
+
+avg_tbl <- season_pbs %>%
+  select(Season, contains(c("Avg"))) %>%
+  mutate_if(is.numeric, round, 2) %>%
+  select(Season, "Avg_CMJ (mm)", "Avg_SJ (mm)", "Avg_LCMJ (mm)", "Avg_RCMJ (mm)") %>%
+  rename("CMJ (mm)" = "Avg_CMJ (mm)", 
+         "SJ (mm)" = "Avg_SJ (mm)", 
+         "LCMJ (mm)" = "Avg_LCMJ (mm)",
+         "RCMJ (mm)" = "Avg_RCMJ (mm)")
+
+pb_tbl <- season_pbs %>%
+  select(Season, contains(c("PB"))) %>%
+  mutate_if(is.numeric, round, 2) %>%
+  select(Season, "PB_CMJ (mm)", "PB_SJ (mm)", "PB_LCMJ (mm)", "PB_RCMJ (mm)") %>%
+  rename("CMJ (mm)" = "PB_CMJ (mm)", 
+         "SJ (mm)" = "PB_SJ (mm)", 
+         "LCMJ (mm)" = "PB_LCMJ (mm)",
+         "RCMJ (mm)" = "PB_RCMJ (mm)")
+
+month_tbl <- jump_tbl %>%
+  group_by(Season, mth = month(Date), Type) %>%
+  summarise(Avg = mean(Score),
+            PB = max(Score)) %>%
+  pivot_wider(names_from = Type, values_from = Avg:PB) %>%
+  filter(mth == month(Sys.Date()-8)) %>%
+  ungroup() %>%
+  select(Season, contains(c("PB"))) %>%
+  mutate(Month = month.name[month(Sys.Date()-8)]) %>%
+  select(Season, Month, "PB_CMJ (mm)", "PB_SJ (mm)", "PB_LCMJ (mm)", "PB_RCMJ (mm)") %>%
+  rename("CMJ (mm)" = "PB_CMJ (mm)", 
+         "SJ (mm)" = "PB_SJ (mm)", 
+         "LCMJ (mm)" = "PB_LCMJ (mm)",
+         "RCMJ (mm)" = "PB_RCMJ (mm)")
+
+#block_tbl <- jump_tbl %>%
+  #filter(Date >= Sys.Date()-31) %>%
+  #group_by(Type) %>%
+  #summarise(Avg = mean(Score),
+  #          PB = max(Score)) %>%
+  #pivot_wider(names_from = Type, values_from = Avg:PB) %>%
+  #  ungroup() %>%
+  #select(contains(c("PB"))) %>%
+  #select("PB_CMJ (mm)", "PB_SJ (mm)", "PB_LCMJ (mm)", "PB_RCMJ (mm)") %>%
+  #rename("CMJ (mm)" = "PB_CMJ (mm)", 
+  #       "SJ (mm)" = "PB_SJ (mm)", 
+  #       "LCMJ (mm)" = "PB_LCMJ (mm)",
+  #       "RCMJ (mm)" = "PB_RCMJ (mm)")
+
+rsi_tbl <- summary_tbl %>%
+  filter(Athlete == name, Type == "Repetitive CMJ (RSI)") %>%
+  select(Date:Notes) %>%
+  group_by(Date) %>%
+  summarise(rsi = mean(Score)) %>%
+  ungroup() %>%
+  mutate_if(is.numeric, round, 2)
+
+drsi_tbl <- summary_tbl %>%
+  filter(Athlete == name, Type == "Repetitive CMJ (RSI)") %>%
+  select(Date:Notes) %>%
+  drop_na(Notes)
+
+if (length(drsi_tbl$Date) >= 1) {
+drsi_add <- str_split(drsi_tbl$Notes, ", ", simplify = TRUE)
+drsi_tbl$jh <- drsi_add[,1]
+drsi_tbl$jh <- gsub("[mm]","", drsi_tbl$jh)
+drsi_tbl$ct <- drsi_add[,2]
+drsi_tbl$ct <- gsub("[ms]","", drsi_tbl$ct)
+drsi_tbl$jh %<>% as.numeric()
+drsi_tbl$ct %<>% as.numeric()
+drsi_tbl %<>%
+  select(!Notes) %>%
+  group_by(Date) %>%
+  mutate(max.rsi = max(Score)) %>%
+  ungroup() %>%
+  filter(max.rsi == Score)
+}
+
+```
+
+```{r jump_plots, fig.show="hold", out.width="50%"}
+#Dbl jumps
+dbl_max_axis <- filter(jump_tbl, Type == "CMJ (mm)" | Type == "SJ (mm)")
+dbl_max_axis <- max(dbl_max_axis$Score)
+
+  dbl_min_axis <- filter(jump_tbl, Type == "CMJ (mm)" | Type == "SJ (mm)")
+  dbl_min_axis <- min(dbl_min_axis$Score)
+
+sgl_max_axis <- filter(jump_tbl, Type == "LCMJ (mm)" | Type == "RCMJ (mm)")
+sgl_max_axis <- max(sgl_max_axis$Score)
+
+  sgl_min_axis <- filter(jump_tbl, Type == "LCMJ (mm)" | Type == "RCMJ (mm)")
+  sgl_min_axis <- min(sgl_min_axis$Score)
+
+dbl.jump <- ggplot(data = filter(jump_tbl, Type == "CMJ (mm)" | Type == "SJ (mm)"), mapping = aes(x = Date, y = Score)) +
+              geom_point(aes(colour = Type)
+              ) +
+              geom_smooth(aes(colour = Type), se = FALSE
+              ) +
+              labs(
+                title = "Double Leg Jump Tests",
+                x = "Date",
+                y = "Score (mm)"
+              ) +
+              scale_y_continuous(
+                breaks = c(seq(round_any(dbl_min_axis*0.90, 25, f=round), 
+                               round_any(dbl_max_axis*1.10, 25, f=round),
+                               25)),
+                limits = c(round_any(dbl_min_axis*0.90, 10, f=round),
+                           round_any(dbl_max_axis*1.10, 10, f=round))
+              ) +
+              scale_x_datetime(
+                date_breaks = "1 months",
+                labels = scales::date_format("%b-%Y")
+              ) +
+              geom_vline(aes(xintercept = as.POSIXct("2021-09-01")), colour = "black", linetype = "dashed"
+              ) +
+              geom_label(x = as.POSIXct("2021-09-01"), y = dbl_max_axis*1.10, label = "Start of 2021-2022 Season"
+              ) +
+              scale_colour_manual(values = c("#CB181D","navyblue")
+              ) +
+              theme_WLTF +
+              theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.50, face = "bold", size = 12),
+                    axis.text.y = element_text(face = "bold", size = 12),
+                    panel.grid.major.y = element_line(linetype = "solid", colour = "grey", size = 0.5))
+
+print(dbl.jump)
+
+#Sgl jumps
+sgl.jump <- ggplot(data = filter(jump_tbl, Type == "LCMJ (mm)" | Type == "RCMJ (mm)"), mapping = aes(x = Date, y = Score)) +
+              geom_point(aes(colour = Type)
+              ) +
+              geom_smooth(aes(colour = Type), se = FALSE
+              ) +
+              scale_y_continuous(
+                breaks = c(round_any(seq(sgl_min_axis*0.90, sgl_max_axis*1.10, 25), 25, f=round)),
+                limits = c(round_any(sgl_min_axis*0.90, 10, f=round),
+                           round_any(sgl_max_axis*1.10, 10, f=round))
+              ) +
+              scale_x_datetime(
+                date_breaks = "1 months",
+                labels = scales::date_format("%b-%Y")
+              ) +  
+              geom_vline(aes(xintercept = as.POSIXct("2021-09-01")), colour = "black", linetype = "dashed"
+              ) +
+              geom_label(x = as.POSIXct("2021-09-01"), y = sgl_max_axis*1.10, label = "Start of 2021-2022 Season"
+              ) +
+              labs(
+                title = "Single Leg Jump Tests",
+                x = "Date",
+                y = "Score (mm)"
+              ) +  
+              scale_colour_manual(values = c("#CB181D","navyblue")
+              ) +
+              theme_WLTF +
+              theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.50, face = "bold", size = 12),
+                    axis.text.y = element_text(face = "bold", size = 12),
+                    panel.grid.major.y = element_line(linetype = "solid", colour = "grey", size = 0.5))
+
+print(sgl.jump)
+```
+
+
+*Personal Best Jump Performances*
+
+```{r}
+kbl(pb_tbl,
+    align = c("l", rep("c",4))) %>%
+  kable_styling(bootstrap_options = c("hover","striped"))
+```
+
+*Average Jump Performances*
+```{r}
+print(dbl.jump) 
+  
+```
+
+```{r}
+kbl(avg_tbl,
+    align = c("l", rep("c",4))) %>%
+  kable_styling(bootstrap_options = c("hover","striped"))
+```
+
+The following table outlines the personal best jump performances for this month compared across seasons.
+
+
+
+
+*Monthly Personal Bests Jumps*
+```{r}
+kbl(month_tbl,
+    align = c("l", rep("c",5))) %>%
+  kable_styling(bootstrap_options = c("hover","striped"))
+```
+
+\newpage
+
+*Reactive Strength Index*
+
+We use he reactive strength index (RSI) to measure `r name`'s ability to produce force quickly. RSI is calculated by dividing jump height (mm) by contact time (ms). A repeated jumps test requires `r name` to use a stretch-shortening cycle (SSC) to maximise performance. A fast SSC is less than 250ms, whereas a slow SSC is anything greater than 250ms.
+Sprinters or speed-based athletes showed aim for a RSI greater than or equal to 3.
+
+```{r fig.show="hold", out.width="50%"}
+if (length(rsi_tbl$rsi >= 1)) {
+ggplot(data = rsi_tbl) +
+  geom_point(mapping = aes(x = Date, y = rsi), colour = "black", size = 3) +
+  geom_line(mapping = aes(x = Date, y = rsi), colour = "red", linetype = "dashed") +
+  geom_label_repel(aes(x = Date, y = rsi, label = rsi), nudge_y = 0.2) +
+  scale_y_continuous(limits = c(0, max(rsi_tbl$rsi)*1.5), expand =  c(0,0)) +
+  labs(x = "", y = "RSI") +
+  theme_WLTF
+}
+
+if (length(drsi_tbl$Date >= 1)) {
+ggplot(data = drsi_tbl) +
+  geom_label(x = 125, y = 1.10, label = "Fast SSC") +
+  geom_label(x = 375, y = 1.10, label = "Slow SSC") +
+  geom_text(x = 475, y = 3.25, label = "Excellent", angle = 270) +
+  geom_text(x = 475, y = 2.75, label = "Good", angle = 270) +
+  geom_text(x = 475, y = 2.25, label = "Fair", angle = 270) +
+  geom_text(x = 475, y = 1.75, label = "Poor", angle = 270) +
+  geom_text(x = 475, y = 1.25, label = "Very Poor", angle = 270) +
+  geom_hline(yintercept = c(1.5, 2.0, 2.5, 3.0), linetype = "dashed") +
+  geom_vline(xintercept = 250, colour = "red") +
+  geom_text_repel(aes(x = ct, y = Score, label = paste0(jh, "mm")), nudge_x = 50, nudge_y = 0.1) +
+  geom_point(mapping = aes(x = ct, y = Score, colour = as.factor(Date)), size = 5) +
+  scale_y_continuous(limits = c(1.0,3.5), expand = c(0,0), breaks = c(seq(1.0,3.5,0.5))) +
+  scale_x_continuous(limits = c(0,500), expand = c(0,0)) +
+  labs(
+    x = "Contact Time (ms)",
+    y = "RSI",
+    colour = "Date"
+  ) +
+  theme_classic()
+} else {
+  blank_data <- tibble(X = c(1.1,2,3), Y = c(0,5,10))
+  
+  ggplot() +
+    geom_point(data = blank_data, aes(x = X, y = Y)) +
+    scale_x_continuous(limits = c(0,1)) +
+    scale_y_continuous(limits = c(0,1)) +
+    labs(
+      x = "",
+      y = ""
+    ) +
+    geom_label(aes(x = 0.5, y = 0.5, label = c("No detailed RSI data avaliable."))) +
+    theme_classic() +
+    theme(
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank()
+    )
+
+}
+```
+
+*Medicine Ball Throws*
+
+```{r fig.align='center'}
+throws_tbl <- summary_tbl %>%
+  filter(Athlete == name) %>%
+  filter(Type == "BLF Medball" | Type == "OH MB Throw") %>%
+  filter(Date >= as.POSIXct("2021-09-01")) %>%
+  select(Date, Athlete, Type, Score)
+
+throws_tbl$Date %<>% as.factor()
+
+if (length(throws_tbl$Score >= 1)) {
+  
+throws_max <- max(throws_tbl$Score)
+throws_min <- min(throws_tbl$Score)
+
+ggplot(throws_tbl, aes(x = factor(Date), y = Score, group = Type) ) +
+  geom_point(mapping = aes(colour = Type)) +
+  geom_line(mapping = aes(colour = Type)) +
+  geom_label_repel(mapping = aes(x = Date, y = Score, label = Score)) +
+  scale_y_continuous(
+  breaks = c(round_any(seq(throws_min*0.90, throws_max*1.10, 25), 25, f=round)),
+  limits = c(round_any(throws_min*0.90, 10, f=round),
+             round_any(throws_max*1.10, 10, f=round))
+  ) +
+  scale_colour_manual(values = c("darkgreen","orange")
+  ) +
+  labs(
+    title = "Medball Throws",
+    x = "Date",
+    y = "Distance (cm)"
+  ) +
+  theme_WLTF
+}
+```
+
