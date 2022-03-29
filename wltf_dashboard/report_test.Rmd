@@ -1,0 +1,37 @@
+---
+title: "WLTF Athlete Report"
+output: html_document
+---
+
+knit: (function(input_file, encoding) {
+  out_dir <- 'test-files';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+##Athlete: `r athlete`
+##Date: `r Sys.Date()`
+###Data Range: `r date.range[1]` to `r date.range[2]`
+
+###This report was generated via the online WLTF Athlete Monitoring System. For further information please contact Sean at [link](sgaiesky@gmail.com)
+
+```{r datg_org, include=FALSE}
+url <- c("https://docs.google.com/spreadsheets/d/1fiRUwYv8FtysQQg7Z25Py-FW6KJeuMeoFCXuPmf89EE/edit?usp=sharing")
+dat <- gsheet::gsheet2tbl(url)
+
+dat$Date %<>% as.Date(format("%d/%m/%Y"))
+dat$Athlete %<>% as.factor()
+dat$Type %<>% as.factor()
+dat$Season %<>% as.factor()
+
+d <- dat %>%
+        filter(Athlete %in% athlete &
+               Type %in% tests & 
+               #Season %in% input$season &
+               Date >= date.range[1] &
+               Date <= date.range[2])
+```
+

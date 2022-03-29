@@ -129,6 +129,20 @@ server <- function(input, output) {
             pivot_wider(names_from = Type, values_from = Average)
     }, striped = TRUE, bordered = TRUE, width = "85%", align = "c")
     
+    output$jump.report <- downloadHandler(filename = "report.html",
+                                          content = function(file) {
+                                              tempReport <- file.path(tempdir(), "report_test.Rmd")
+                                              file.copy("report_test.Rmd", tempReport, overwrite = TRUE)
+                                              
+                                              params <- list(athlete = input$athlete,
+                                                             tests = input$tests,
+                                                             date.range = input$date.range)
+                                              
+                                              rmarkdown::render(tempReport, output_file = file,
+                                                                params = params,
+                                                                envir = new.env(parent = globalenv())
+                                                                )
+                                          })
 }
 
 # Run the application 
