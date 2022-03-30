@@ -50,13 +50,24 @@ ui <- navbarPage("West London Track & Field Athlete Monitoring",
            width = 8
         )
     ),
-    fluidRow(column(offset = 4, width = 8, h4("Personal Best Jumps"))),
+    fluidRow(column(offset = 4, width = 8, h4("Past 31 Days"))),
+    
+    fluidRow(column(offset = 4, width = 8, h5("Personal Best"))),
+    
+    fluidRow(column(offset = 4, width = 8, tableOutput("mth.pb.tbl"))),
+    
+    fluidRow(column(offset = 4, width = 8, h5("Average"))),
+    
+    fluidRow(column(offset = 4, width = 8, tableOutput("mth.avg.tbl"))),
+    
+    fluidRow(column(offset = 4, width = 8, h4("Season Personal Best Jumps"))),
     
     fluidRow(column(offset = 4, width = 8, tableOutput("pb.tbl"))),
     
-    fluidRow(column(offset = 4, width = 8, h4("Average Jumps"))),
+    fluidRow(column(offset = 4, width = 8, h4("Season Average Jumps"))),
     
     fluidRow(column(offset = 4, width = 8, tableOutput("avg.tbl")))
+
     ),
     tabPanel("Performances",
              fluidRow(column(width = 12, h1("COMING SOON!")
@@ -126,6 +137,30 @@ server <- function(input, output) {
             mutate_if(is.numeric, round, 0) %>%
             ungroup() %>%
             select(!PB) %>%
+            pivot_wider(names_from = Type, values_from = Average)
+    }, striped = TRUE, bordered = TRUE, width = "85%", align = "c")
+    
+    output$mth.pb.tbl <- renderTable({
+        d <- dat1()
+        
+        mth.pb.tbl <- d %>%
+            filter(Date >= input$date.range[2]-31) %>%
+            group_by(Athlete, Type, Season) %>%
+            summarise(PB = max(Score)) %>%
+            mutate_if(is.numeric, round, 0) %>%
+            ungroup() %>%
+            pivot_wider(names_from = Type, values_from = PB)
+    }, striped = TRUE, bordered = TRUE, width = "85%", align = "c")
+    
+    output$mth.avg.tbl <- renderTable({
+        d <- dat1()
+        
+        mth.avg.tbl <- d %>%
+            filter(Date >= input$date.range[2]-31) %>%
+            group_by(Athlete, Type, Season) %>%
+            summarise(Average = mean(Score)) %>%
+            mutate_if(is.numeric, round, 0) %>%
+            ungroup() %>%
             pivot_wider(names_from = Type, values_from = Average)
     }, striped = TRUE, bordered = TRUE, width = "85%", align = "c")
     

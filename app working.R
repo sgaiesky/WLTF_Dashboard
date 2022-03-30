@@ -52,3 +52,13 @@ pb.tbl <- dat.tbl %>%
 avg.tbl <- dat.tbl %>%
   select(!PB) %>%
   pivot_wider(names_from = Type, values_from = Average)
+
+x <- date.range[2]
+
+mth.tbl <- dat %>%
+  filter(Date >= date.range[2]-31) %>%
+  group_by(Athlete, Type, Season) %>%
+  summarise(PB = max(Score),
+            Average = mean(Score)) %>%
+  mutate_if(is.numeric, round, 0) %>%
+  ungroup()

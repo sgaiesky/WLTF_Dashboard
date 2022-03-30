@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = FALSE,
 
 library(knitr)
 library(kableExtra)
+library(magrittr)
 
 ```
 ### Athlete: **`r params$athlete`**  
@@ -60,30 +61,63 @@ print(jump.graph)
 ```
 
 ```{r jump_tbl}
+tbl <- d %>%
+  group_by(Athlete, Type, Season) %>%
+  summarise(PB = max(Score),
+            Average = mean(Score)) %>%
+  mutate_if(is.numeric, round, 0) %>%
+  ungroup()
 
-pb.tbl <- d %>%
-            group_by(Athlete, Type, Season) %>%
-            summarise(PB = max(Score),
-                      Average = mean(Score)) %>%
-            mutate_if(is.numeric, round, 0) %>%
-            ungroup() %>%
+
+pb.tbl <- tbl %>%
             select(!Average) %>%
             pivot_wider(names_from = Type, values_from = PB)
 
-avg.tbl <- d %>%
-            group_by(Athlete, Type, Season) %>%
-            summarise(PB = max(Score),
-                      Average = mean(Score)) %>%
-            mutate_if(is.numeric, round, 0) %>%
-            ungroup() %>%
+avg.tbl <- tbl %>%
             select(!PB) %>%
             pivot_wider(names_from = Type, values_from = Average)
 
+mth.pb.tbl <- d %>%
+            filter(Date >= params$date.range[2]-31) %>%
+            group_by(Athlete, Type, Season) %>%
+            summarise(PB = max(Score)) %>%
+            mutate_if(is.numeric, round, 0) %>%
+            ungroup() %>%
+            pivot_wider(names_from = Type, values_from = PB)
 
+mth.avg.tbl <- d %>%
+            filter(Date >= params$date.range[2]-31) %>%
+            group_by(Athlete, Type, Season) %>%
+            summarise(Average = mean(Score)) %>%
+            mutate_if(is.numeric, round, 0) %>%
+            ungroup() %>%
+            pivot_wider(names_from = Type, values_from = Average)
+
+```
+#### Recent Performances (Last 31 days)
+##### Personal Bests
+```{r}
+kbl(mth.pb.tbl,
+    align = c("l", rep("c",4))) %>%
+  kable_styling(bootstrap_options = c("hover","striped"))
+```
+
+##### Average
+```{r}
+kbl(mth.avg.tbl,
+    align = c("l", rep("c",4))) %>%
+  kable_styling(bootstrap_options = c("hover","striped"))
+```
+
+#### Season Personal Bests
+```{r}
 kbl(pb.tbl,
     align = c("l", rep("c",4))) %>%
   kable_styling(bootstrap_options = c("hover","striped"))
+```
 
+#### Season Average
+```{r}
 kbl(avg.tbl,
     align = c("l", rep("c",4))) %>%
   kable_styling(bootstrap_options = c("hover","striped"))
