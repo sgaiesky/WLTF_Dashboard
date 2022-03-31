@@ -55,7 +55,10 @@ jump.graph <- ggplot(data = d, mapping = aes(x = Date, y = Score)) +
             guides(x = guide_axis(angle = 90), linetype = FALSE) +
             theme_classic() +
             theme(axis.text.x = element_text(face = "bold", size = 12),
-                  legend.text = element_text,
+                  axis.title.y = element_text(face = "bold", size = 12),
+                  axis.text.y = element_text(face = "bold", size = 8),
+                  legend.title = element_text(face = "bold", size = 12),
+                  legend.text = element_text(size = 10),
                   panel.grid.major.y = element_line(linetype = "solid", colour = "grey", size = 0.5))
 
 print(jump.graph)

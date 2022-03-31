@@ -96,19 +96,23 @@ server <- function(input, output) {
         d <- dat1()
         
         jump.graph <- ggplot(data = d, mapping = aes(x = Date, y = Score)) +
-            geom_point(mapping = aes(colour = Type, shape = Athlete),
-                       size = 3) +
-            geom_line(mapping = aes(colour = Type, group = interaction(Athlete, Type),
-                                    linetype = Athlete),
-                      size = 1.2) +
+            geom_point(mapping = aes(colour = Athlete, shape = Type),
+                       size = 4) +
+            geom_line(mapping = aes(colour = Athlete, group = interaction(Athlete, Type),
+                                    linetype = Type),
+                      size = 1.0) +
             scale_x_date(date_breaks = "1 month",
                          date_labels = "%B %Y") +
             labs(y = "Height (mm)",
                  x = "") +
-            guides(x = guide_axis(angle = 90)) +
+            guides(x = guide_axis(angle = 45), linetype = FALSE) +
             theme_classic() +
             theme(axis.text.x = element_text(face = "bold", size = 12),
-                  legend.text = element_text(size = 12))
+                  axis.title.y = element_text(face = "bold", size = 12),
+                  axis.text.y = element_text(face = "bold", size = 8),
+                  legend.title = element_text(face = "bold", size = 12),
+                  legend.text = element_text(size = 10),
+                  panel.grid.major.y = element_line(linetype = "solid", colour = "grey", size = 0.5))
         
         print(jump.graph)
     })
@@ -164,10 +168,10 @@ server <- function(input, output) {
             pivot_wider(names_from = Type, values_from = Average)
     }, striped = TRUE, bordered = TRUE, width = "85%", align = "c")
     
-    output$jump.report <- downloadHandler(filename = "report.html",
+    output$jump.report <- downloadHandler(filename = paste0("report.html"),
                                           content = function(file) {
-                                              tempReport <- file.path(tempdir(), "report_test.Rmd")
-                                              file.copy("report_test.Rmd", tempReport, overwrite = TRUE)
+                                              tempReport <- file.path(tempdir(), "report_dash.Rmd")
+                                              file.copy("report_dash.Rmd", tempReport, overwrite = TRUE)
                                               
                                               params <- list(athlete = input$athlete,
                                                              tests = input$tests,
