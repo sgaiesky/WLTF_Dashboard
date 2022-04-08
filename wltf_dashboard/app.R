@@ -4,6 +4,7 @@ library(magrittr)
 library(lubridate)
 library(shiny)
 library(shinythemes)
+library(plotly)
 
 ## data creation
 
@@ -46,8 +47,9 @@ ui <- navbarPage("West London Track & Field Athlete Monitoring",
 
         # Show a plot of the generated distribution
         mainPanel(
-           plotOutput("jump.graph"),
-           width = 8
+            plotlyOutput("plotly"),
+           #plotOutput("jump.graph"),
+           #width = 8
         )
     ),
     fluidRow(column(offset = 4, width = 8, h4("Past 31 Days"))),
@@ -87,10 +89,42 @@ server <- function(input, output) {
                    #Season %in% input$season &
                        Date >= input$date.range[1] &
                        Date <= input$date.range[2])
+        d$Athlete <- droplevels(d$Athlete)
+        d$Type <- droplevels(d$Type)
         
         d
     })
 
+    output$plotly <- renderPlotly({
+        d <- dat1()
+        
+        pal <- c("red", "blue", "orange")
+        pal <- setNames(pal, unique(d$Athlete))
+        sym <- c("circle", "o", "x", "x-open")
+        sym <- setNames(sym, c("CMJ (mm)", "SJ (mm)", "RCMJ (mm)", "LCMJ (mm)"))
+        
+        fig <- plot_ly(
+            data = d,
+            x = ~Date,
+            y = ~Score,
+            color = ~Athlete,
+            linetype = ~Athlete,
+            text = ~paste("", Athlete,
+                          "<br>", Date,
+                          "<br>", Type,
+                          "<br>", Score),
+            hoverinfo = "text",
+            type = "scatter",
+            mode = "markers+lines",
+            line = list(width = 0.5, shape = "spline"),
+            symbol = ~Type,
+            symbols = sym,
+            colors = pal
+        )
+        
+        print(fig)
+    })
+    
     output$jump.graph <- renderPlot({
         
         d <- dat1()

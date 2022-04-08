@@ -4,11 +4,12 @@ library(tidyverse)
 library(gsheet)
 library(magrittr)
 library(lubridate)
+library(plotly)
 
-athlete <- c("Holly")
-tests <- c("CMJ (mm)", "SJ (mm)")
+athlete <- c("Holly", "Synne", "Jahde")
+tests <- c("CMJ (mm)", "SJ (mm)", "RCMJ (mm)", "LCMJ (mm)")
 season <- c("21-22")
-date.range <- as.Date(c("2020-01-01", "2022-01-01"))
+date.range <- as.Date(c("2021-01-01", "2022-01-01"))
 
 url <- c("https://docs.google.com/spreadsheets/d/1fiRUwYv8FtysQQg7Z25Py-FW6KJeuMeoFCXuPmf89EE/edit?usp=sharing")
 dat <- gsheet::gsheet2tbl(url)
@@ -17,6 +18,44 @@ dat$Date %<>% as.Date(format("%d/%m/%Y"))
 dat$Athlete %<>% as.factor()
 dat$Type %<>% as.factor()
 dat$Season %<>% as.factor()
+
+dat <- dat %>%
+  filter(Athlete %in% athlete &
+         Type %in% tests &
+           Date >= date.range[1] &
+           Date <= date.range[2])
+
+dat$Athlete <- droplevels(dat$Athlete)
+dat$Type <- droplevels(dat$Type)
+
+#plotly functions
+
+
+pal <- c("red", "blue", "orange")
+pal <- setNames(pal, c(athlete[1], athlete[2], athlete[3]))
+sym <- c("circle", "o", "x", "x-open")
+sym <- setNames(sym, c("CMJ (mm)", "SJ (mm)", "RCMJ (mm)", "LCMJ (mm)"))
+
+fig <- plot_ly(
+  data = dat,
+  x = ~Date,
+  y = ~Score,
+  color = ~Athlete,
+  linetype = ~Athlete,
+  text = ~paste("", Athlete,
+                "<br>", Date,
+                "<br>", Type,
+                "<br>", Score),
+  hoverinfo = "text",
+  type = "scatter",
+  mode = "markers+lines",
+  line = list(width = 0.5, shape = "spline"),
+  symbol = ~Type,
+  symbols = sym,
+  colors = pal
+)
+
+fig
 
 # %in% is used for multiple inputs
 dat <- dat %>%
