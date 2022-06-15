@@ -7,11 +7,12 @@ library(shinythemes)
 library(plotly)
 
 ## data creation
+#sheet name needs some work before publishing.
 
-url <- c("https://docs.google.com/spreadsheets/d/1fiRUwYv8FtysQQg7Z25Py-FW6KJeuMeoFCXuPmf89EE/edit?usp=sharing")
+url <- c("https://docs.google.com/spreadsheets/d/1IYawLj4DywKXo8HfxALWXuv3sWAb1GaUS_kNSqOcfEg/edit?usp=sharing")
 dat <- gsheet::gsheet2tbl(url)
 
-dat$Date %<>% as.Date(format("%d/%m/%Y"))
+dat$Date %<>% as.Date(format("%d %B %Y"))
 dat$Athlete %<>% as.factor()
 dat$Type %<>% as.factor()
 dat$Season %<>% as.factor()

@@ -9,7 +9,8 @@ params:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE,
-                      message = FALSE)
+                      message = FALSE,
+                      warning = FALSE)
 
 library(knitr)
 library(kableExtra)
@@ -44,10 +45,10 @@ d <- dat %>%
 
 jump.graph <- ggplot(data = d, mapping = aes(x = Date, y = Score)) +
             geom_point(mapping = aes(colour = Athlete, shape = Type),
-                       size = 3) +
+                       size = 2) +
             geom_line(mapping = aes(colour = Athlete, group = interaction(Athlete, Type),
                                     linetype = Type),
-                      size = 1.2) +
+                      size = 0.5) +
             scale_x_date(date_breaks = "1 month",
                          date_labels = "%B %Y") +
             labs(y = "Height (mm)",
