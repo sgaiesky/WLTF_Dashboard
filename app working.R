@@ -6,8 +6,8 @@ library(magrittr)
 library(lubridate)
 library(plotly)
 
-athlete <- c("Holly", "Synne", "Jahde")
-tests <- c("CMJ (mm)", "SJ (mm)", "RCMJ (mm)", "LCMJ (mm)")
+athlete <- c("Holly", "Jahde", "Synne")
+tests <- c("CMJ (mm)", "SJ (mm)")
 season <- c("21-22")
 date.range <- as.Date(c("2021-01-01", "2022-01-01"))
 
@@ -41,7 +41,6 @@ fig <- plot_ly(
   x = ~Date,
   y = ~Score,
   color = ~Athlete,
-  linetype = ~Athlete,
   text = ~paste("", Athlete,
                 "<br>", Date,
                 "<br>", Type,
@@ -53,7 +52,18 @@ fig <- plot_ly(
   symbol = ~Type,
   symbols = sym,
   colors = pal
-)
+) %>%
+  layout(yaxis = list(
+           title = "Score (mm)"),
+         xaxis = list(
+           title = ""),
+         legend = list(
+           orientation = "h",
+           font = list(
+             size = 12
+           )
+           )
+         )
 
 fig
 
