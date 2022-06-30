@@ -8,13 +8,23 @@ library(plotly)
 
 ## data creation
 
-url <- c("https://docs.google.com/spreadsheets/d/1IYawLj4DywKXo8HfxALWXuv3sWAb1GaUS_kNSqOcfEg/edit?usp=sharing")
-dat <- gsheet::gsheet2tbl(url)
+url <- c("https://docs.google.com/spreadsheets/d/1IYawLj4DywKXo8HfxALWXuv3sWAb1GaUS_kNSqOcfEg/edit#gid=253542207")
+url2 <- c("https://docs.google.com/spreadsheets/d/1IYawLj4DywKXo8HfxALWXuv3sWAb1GaUS_kNSqOcfEg/edit#gid=511309038")
 
-dat$Date %<>% as.Date(format("%d %B %Y"))
-dat$Athlete %<>% as.factor()
-dat$Type %<>% as.factor()
-dat$Season %<>% as.factor()
+dat <- gsheet::gsheet2tbl(url)
+dat2 <- gsheet::gsheet2tbl(url2)
+
+tbl.format <- function(x) {
+  x$Date %<>% as.Date(format("%d %B %Y"))
+  x$Athlete %<>% as.factor()
+  x$Type %<>% as.factor()
+  x$Season %<>% as.factor()
+  
+  return(x)
+}
+
+jump.dat <- tbl.format(dat)
+split.dat <- tbl.format(dat2)
 
 # Define UI for application that draws a histogram
 ui <- navbarPage("West London Track & Field Athlete Monitoring",
@@ -28,7 +38,7 @@ ui <- navbarPage("West London Track & Field Athlete Monitoring",
         sidebarPanel(
             selectizeInput("athlete",
                            "Select Athlete(s):",
-                           choices = unique(dat$Athlete),
+                           choices = unique(jump.dat$Athlete),
                            multiple = TRUE,
                            options = list(maxItems = 3)),
             dateRangeInput("date.range",
@@ -71,7 +81,7 @@ ui <- navbarPage("West London Track & Field Athlete Monitoring",
     fluidRow(column(offset = 4, width = 8, tableOutput("avg.tbl")))
 
     ),
-    tabPanel("Performances",
+    tabPanel("Splits",
              fluidRow(column(width = 12, h1("COMING SOON!")
                              )
                       )
@@ -82,8 +92,8 @@ ui <- navbarPage("West London Track & Field Athlete Monitoring",
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     
-    dat1 <- reactive({
-        d <- dat %>%
+    jump.dat1 <- reactive({
+        d <- jump.dat %>%
             filter(Athlete %in% input$athlete &
                    Type %in% input$tests & 
                    #Season %in% input$season &
@@ -96,7 +106,7 @@ server <- function(input, output) {
     })
 
     output$plotly <- renderPlotly({
-        d <- dat1()
+        d <- jump.dat1()
         
         pal <- c("red", "blue", "orange")
         pal <- setNames(pal, unique(d$Athlete))
@@ -130,7 +140,7 @@ server <- function(input, output) {
     })
     
     output$pb.tbl <- renderTable({
-        d <- dat1()
+        d <- jump.dat1()
         
         pb.tbl <- d %>%
             group_by(Athlete, Type, Season) %>%
@@ -144,7 +154,7 @@ server <- function(input, output) {
     }, striped = TRUE, bordered = TRUE, width = "85%", align = "c")
     
     output$avg.tbl <- renderTable({
-        d <- dat1()
+        d <- jump.dat1()
         
         avg.tbl <- d %>%
             group_by(Athlete, Type, Season) %>%
@@ -157,7 +167,7 @@ server <- function(input, output) {
     }, striped = TRUE, bordered = TRUE, width = "85%", align = "c")
     
     output$mth.pb.tbl <- renderTable({
-        d <- dat1()
+        d <- jump.dat1()
         
         mth.pb.tbl <- d %>%
             filter(Date >= input$date.range[2]-31) %>%
@@ -169,7 +179,7 @@ server <- function(input, output) {
     }, striped = TRUE, bordered = TRUE, width = "85%", align = "c")
     
     output$mth.avg.tbl <- renderTable({
-        d <- dat1()
+        d <- jump.dat1()
         
         mth.avg.tbl <- d %>%
             filter(Date >= input$date.range[2]-31) %>%
