@@ -7,7 +7,6 @@ library(shinythemes)
 library(plotly)
 
 ## data creation
-#sheet name needs some work before publishing.
 
 url <- c("https://docs.google.com/spreadsheets/d/1IYawLj4DywKXo8HfxALWXuv3sWAb1GaUS_kNSqOcfEg/edit?usp=sharing")
 dat <- gsheet::gsheet2tbl(url)
@@ -121,35 +120,13 @@ server <- function(input, output) {
             symbol = ~Type,
             symbols = sym,
             colors = pal
-        )
+        ) %>%
+          layout(
+            xaxis = list(fixedrange = TRUE),
+            yaxis = list(fixedrange = TRUE)
+          )
         
         print(fig)
-    })
-    
-    output$jump.graph <- renderPlot({
-        
-        d <- dat1()
-        
-        jump.graph <- ggplot(data = d, mapping = aes(x = Date, y = Score)) +
-            geom_point(mapping = aes(colour = Athlete, shape = Type),
-                       size = 4) +
-            geom_line(mapping = aes(colour = Athlete, group = interaction(Athlete, Type),
-                                    linetype = Type),
-                      size = 1.0) +
-            scale_x_date(date_breaks = "1 month",
-                         date_labels = "%B %Y") +
-            labs(y = "Height (mm)",
-                 x = "") +
-            guides(x = guide_axis(angle = 45), linetype = FALSE) +
-            theme_classic() +
-            theme(axis.text.x = element_text(face = "bold", size = 12),
-                  axis.title.y = element_text(face = "bold", size = 12),
-                  axis.text.y = element_text(face = "bold", size = 8),
-                  legend.title = element_text(face = "bold", size = 12),
-                  legend.text = element_text(size = 10),
-                  panel.grid.major.y = element_line(linetype = "solid", colour = "grey", size = 0.5))
-        
-        print(jump.graph)
     })
     
     output$pb.tbl <- renderTable({
@@ -157,8 +134,8 @@ server <- function(input, output) {
         
         pb.tbl <- d %>%
             group_by(Athlete, Type, Season) %>%
-            summarise(PB = max(Score),
-                      Average = mean(Score)) %>%
+            summarise(PB = max(Score, na.rm = TRUE),
+                      Average = mean(Score, na.rm = TRUE)) %>%
             mutate_if(is.numeric, round, 0) %>%
             ungroup() %>%
             select(!Average) %>%
@@ -171,8 +148,8 @@ server <- function(input, output) {
         
         avg.tbl <- d %>%
             group_by(Athlete, Type, Season) %>%
-            summarise(PB = max(Score),
-                      Average = mean(Score)) %>%
+            summarise(PB = max(Score, na.rm = TRUE),
+                      Average = mean(Score, na.rm = TRUE)) %>%
             mutate_if(is.numeric, round, 0) %>%
             ungroup() %>%
             select(!PB) %>%
@@ -185,7 +162,7 @@ server <- function(input, output) {
         mth.pb.tbl <- d %>%
             filter(Date >= input$date.range[2]-31) %>%
             group_by(Athlete, Type, Season) %>%
-            summarise(PB = max(Score)) %>%
+            summarise(PB = max(Score, na.rm = TRUE)) %>%
             mutate_if(is.numeric, round, 0) %>%
             ungroup() %>%
             pivot_wider(names_from = Type, values_from = PB)
@@ -197,7 +174,7 @@ server <- function(input, output) {
         mth.avg.tbl <- d %>%
             filter(Date >= input$date.range[2]-31) %>%
             group_by(Athlete, Type, Season) %>%
-            summarise(Average = mean(Score)) %>%
+            summarise(Average = mean(Score, na.rm = TRUE)) %>%
             mutate_if(is.numeric, round, 0) %>%
             ungroup() %>%
             pivot_wider(names_from = Type, values_from = Average)

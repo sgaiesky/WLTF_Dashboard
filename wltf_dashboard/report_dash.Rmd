@@ -1,5 +1,5 @@
 ---
-title: "Athlete Monitering Report"
+title: "Athlete Monitoring Report"
 output: html_document
 params:
   athlete: NA
@@ -19,7 +19,7 @@ library(magrittr)
 ```
 ### Athlete: **`r params$athlete`**  
 
-### Date: `r Sys.Date()`  
+#### Date: `r Sys.Date()`  
 #### Data Range: `r params$date.range[1]` to `r params$date.range[2]`  
 
 #### This report was generated via the online WLTF Athlete Monitoring System. For further information please contact Sean at <sgaiesky@gmail.com>
@@ -48,14 +48,14 @@ jump.graph <- ggplot(data = d, mapping = aes(x = Date, y = Score)) +
                        size = 2) +
             geom_line(mapping = aes(colour = Athlete, group = interaction(Athlete, Type),
                                     linetype = Type),
-                      size = 0.5) +
+                      size = 0.25) +
             scale_x_date(date_breaks = "1 month",
                          date_labels = "%B %Y") +
             labs(y = "Height (mm)",
                  x = "") +
             guides(x = guide_axis(angle = 90), linetype = FALSE) +
             theme_classic() +
-            theme(axis.text.x = element_text(face = "bold", size = 12),
+            theme(axis.text.x = element_text(size = 12),
                   axis.title.y = element_text(face = "bold", size = 12),
                   axis.text.y = element_text(face = "bold", size = 8),
                   legend.title = element_text(face = "bold", size = 12),
