@@ -6,14 +6,7 @@ library(shiny)
 library(shinythemes)
 library(plotly)
 
-## data creation
-
-url <- c("https://docs.google.com/spreadsheets/d/1IYawLj4DywKXo8HfxALWXuv3sWAb1GaUS_kNSqOcfEg/edit#gid=253542207")
-url2 <- c("https://docs.google.com/spreadsheets/d/1IYawLj4DywKXo8HfxALWXuv3sWAb1GaUS_kNSqOcfEg/edit#gid=511309038")
-
-dat <- gsheet::gsheet2tbl(url)
-dat2 <- gsheet::gsheet2tbl(url2)
-
+####functions####
 tbl.format <- function(x) {
   x$Date %<>% as.Date(format("%d %B %Y"))
   x$Athlete %<>% as.factor()
@@ -23,10 +16,17 @@ tbl.format <- function(x) {
   return(x)
 }
 
+####data retrieval####
+url <- c("https://docs.google.com/spreadsheets/d/1IYawLj4DywKXo8HfxALWXuv3sWAb1GaUS_kNSqOcfEg/edit#gid=253542207")
+url2 <- c("https://docs.google.com/spreadsheets/d/1IYawLj4DywKXo8HfxALWXuv3sWAb1GaUS_kNSqOcfEg/edit#gid=511309038")
+
+dat <- gsheet::gsheet2tbl(url)
+dat2 <- gsheet::gsheet2tbl(url2)
+
 jump.dat <- tbl.format(dat)
 split.dat <- tbl.format(dat2)
 
-# Define UI for application that draws a histogram
+####ui####
 ui <- navbarPage("West London Track & Field Athlete Monitoring",
                  theme = shinytheme("flatly"),
 
@@ -57,7 +57,7 @@ ui <- navbarPage("West London Track & Field Athlete Monitoring",
 
         # Show a plot of the generated distribution
         mainPanel(
-            plotlyOutput("plotly"),
+            plotlyOutput("jump.plot"),
            #plotOutput("jump.graph"),
            #width = 8
         )
@@ -82,34 +82,75 @@ ui <- navbarPage("West London Track & Field Athlete Monitoring",
 
     ),
     tabPanel("Splits",
-             fluidRow(column(width = 12, h1("COMING SOON!")
-                             )
-                      )
+             sidebarLayout(
+               sidebarPanel(
+                 selectizeInput("athlete.split",
+                                "Select Athlete(s):",
+                                choices = unique(split.dat$Athlete),
+                                multiple = TRUE,
+                                options = list(maxItems = 1)),
+                 dateRangeInput("split.date.range",
+                                "Select the dates of interest:",
+                                start = "2021-09-01",
+                                end = NULL),
+                 checkboxGroupInput("split.tests",
+                                    "Select the tests of interest:",
+                                    choices = unique(split.dat$Type)),
+                 downloadButton("split.report", "Generate Split Report")
+               ),
+               mainPanel(
+                 fluidRow(
+                   plotlyOutput("split.plot")
+                   ),
+               )
+             )
     )
 )
 
 
-# Define server logic required to draw a histogram
+####server####
+
 server <- function(input, output) {
-    
+  
+####data####  
+  #jump data creation - filtered
     jump.dat1 <- reactive({
         d <- jump.dat %>%
             filter(Athlete %in% input$athlete &
                    Type %in% input$tests & 
                    #Season %in% input$season &
                        Date >= input$date.range[1] &
-                       Date <= input$date.range[2])
+                       Date <= input$date.range[2]) %>%
+          arrange(Date)
+        
         d$Athlete <- droplevels(d$Athlete)
         d$Type <- droplevels(d$Type)
         
-        d
+        return(d)
     })
-
-    output$plotly <- renderPlotly({
+    
+  #split data creation - filtered
+    split.dat1 <- reactive({
+      d <- split.dat %>%
+        filter(Athlete %in% input$athlete.split &
+                 Date >= input$split.date.range[1] &
+                 Date <= input$split.date.range[2] &
+                 Type %in% input$split.tests) %>%
+        arrange(Date)
+      
+      d$Athlete <- droplevels(d$Athlete)
+      d$Type <- droplevels(d$Type)
+      
+      return(d)
+    })
+    
+####plots####
+  #jump data plot
+    output$jump.plot <- renderPlotly({
         d <- jump.dat1()
         
         pal <- c("red", "blue", "orange")
-        pal <- setNames(pal, unique(d$Athlete))
+        pal <- setNames(pal, input$athlete)
         sym <- c("circle", "o", "x", "x-open")
         sym <- setNames(sym, c("CMJ (mm)", "SJ (mm)", "RCMJ (mm)", "LCMJ (mm)"))
         
@@ -139,6 +180,37 @@ server <- function(input, output) {
         print(fig)
     })
     
+  #split data plot
+    output$split.plot <- renderPlotly({
+      d <- split.dat1()
+      
+      pal <- c("red", "blue", "orange")
+      pal <- setNames(pal, input$split.tests)
+      
+      fig <- plot_ly(
+        data = d,
+        x = ~Date,
+        y = ~Time,
+        color = ~Type,
+        text = ~paste("", Type,
+                      "<br>", Time),
+        hoverinfo = "text",
+        type = "scatter",
+        mode = "markers+lines",
+        line = list(width = 0.5),
+        colors = pal
+      ) %>%
+        layout(
+          xaxis = list(fixedrange = TRUE),
+          yaxis = list(fixedrange = TRUE)
+        )
+      
+      print(fig)
+    })
+    
+    
+####tbls####   
+  #jump pb table
     output$pb.tbl <- renderTable({
         d <- jump.dat1()
         
@@ -152,7 +224,8 @@ server <- function(input, output) {
             pivot_wider(names_from = Type, values_from = PB)
             
     }, striped = TRUE, bordered = TRUE, width = "85%", align = "c")
-    
+  
+  #jump avg table
     output$avg.tbl <- renderTable({
         d <- jump.dat1()
         
@@ -178,6 +251,7 @@ server <- function(input, output) {
             pivot_wider(names_from = Type, values_from = PB)
     }, striped = TRUE, bordered = TRUE, width = "85%", align = "c")
     
+  #jump month avg table
     output$mth.avg.tbl <- renderTable({
         d <- jump.dat1()
         
@@ -190,10 +264,17 @@ server <- function(input, output) {
             pivot_wider(names_from = Type, values_from = Average)
     }, striped = TRUE, bordered = TRUE, width = "85%", align = "c")
     
+  # #split table
+  #   output$split.tbl <- renderTable({
+  #     d <- 
+  #   })
+  
+####reports####  
+  #jump report
     output$jump.report <- downloadHandler(filename = paste0("report.html"),
                                           content = function(file) {
-                                              tempReport <- file.path(tempdir(), "report_dash.Rmd")
-                                              file.copy("report_dash.Rmd", tempReport, overwrite = TRUE)
+                                              tempReport <- file.path(tempdir(), "jump_report.Rmd")
+                                              file.copy("jump_report.Rmd", tempReport, overwrite = TRUE)
                                               
                                               params <- list(athlete = input$athlete,
                                                              tests = input$tests,
@@ -204,7 +285,23 @@ server <- function(input, output) {
                                                                 envir = new.env(parent = globalenv())
                                                                 )
                                           })
+    
+  #split report
+    output$split.report <- downloadHandler(filename = paste0("report.html"),
+                                          content = function(file) {
+                                            tempReport <- file.path(tempdir(), "split_report.Rmd")
+                                            file.copy("split_report.Rmd", tempReport, overwrite = TRUE)
+                                            
+                                            params <- list(athlete = input$athlete.split,
+                                                           tests = input$split.tests,
+                                                           date.range = input$split.date.range)
+                                            
+                                            rmarkdown::render(tempReport, output_file = file,
+                                                              params = params,
+                                                              envir = new.env(parent = globalenv())
+                                            )
+                                          })
 }
 
-# Run the application 
+####run app####
 shinyApp(ui = ui, server = server)
