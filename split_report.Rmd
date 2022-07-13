@@ -1,9 +1,8 @@
 ---
 title: "Athlete Monitoring Split Report"
 output: html_document
-date: '2022-07-12'
 params:
-  athlete: NA
+  athlete: Holly
   tests: NA
   date.range: NA
 ---
@@ -13,17 +12,26 @@ knitr::opts_chunk$set(echo = FALSE,
                       message = FALSE,
                       warning = FALSE)
 
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
 library(knitr)
 library(kableExtra)
 library(magrittr)
 
+date.range <- c(as.Date("2021/01/01"), as.Date("2022/12/31"))
+# athlete <- c("Holly")
+tests <- c("0-10", "30-60")
+
 ```
-### Athlete: **`r params$athlete`**  
 
-#### Date: `r Sys.Date()`  
-#### Data Range: `r params$date.range[1]` to `r params$date.range[2]`  
+#### Athlete: **`r params$athlete`**
 
-#### This report was generated via the online WLTF Athlete Monitoring System. For further information please contact Sean at <sgaiesky@gmail.com>
+#### Date: **`r Sys.Date()`**
+
+#### Data Range: **`r date.range[1]` to `r date.range[2]`**
+
+#### This report was generated via the online WLTF Athlete Monitoring System. For further information please contact Sean at [sgaiesky\@gmail.com](mailto:sgaiesky@gmail.com){.email}.
 
 ```{r data_org}
 tbl.format <- function(x) {
@@ -35,21 +43,61 @@ tbl.format <- function(x) {
   return(x)
 }
 
+tbl.func <- function(x, y) {
+  
+  for (i in unique(x$Type)) {
+    
+    tbl <- x %>%
+      filter(Type == i) %>%
+      group_by(Month = month(Date, label = TRUE, abbr = FALSE)) %>%
+      summarise(Best = min(Time),
+                Average = mean(Time)) %>%
+      mutate_if(is.numeric, round, 2)
+    
+    y[[paste0("test_", i, "_tbl")]] <- tbl
+  }
+  
+  return(y)
+}
+
 url2 <- c("https://docs.google.com/spreadsheets/d/1IYawLj4DywKXo8HfxALWXuv3sWAb1GaUS_kNSqOcfEg/edit#gid=511309038")
 dat2 <- gsheet::gsheet2tbl(url2)
 
 split.dat <- tbl.format(dat2)
 
 
-d <- dat %>%
-        filter(Athlete %in% params$athlete &
-               Type %in% params$tests & 
+d <- split.dat %>%
+        dplyr::filter(Athlete == params$athlete &
+               Type %in% tests & 
                #Season %in% input$season &
-               Date >= params$date.range[1] &
-               Date <= params$date.range[2])
+               Date >= date.range[1] &
+               Date <= date.range[2])
 ```
 
-```{r jump_report, fig.align='center'}
+```{r split_tbl, results='asis'}
+
+tbl.list <- list()
+
+tbls <- tbl.func(d, tbl.list)
+
+for (i in 1:length(tbls)) {
+
+ x <- kbl(tbls[[i]],
+                  align = "c",
+                  caption = paste0(unique(d$Type)[i], " personal best and average splits from                                    ", date.range[1], " to ", date.range[2])) %>%
+              kable_styling(bootstrap_options = c("hover", "striped"))
+  
+  
+ print(x)
+  
+}
+
+
+
+
+```
+
+```{r split_fig, fig.align='center'}
 
 split.graph <- ggplot(data = d, mapping = aes(x = Date, y = Time)) +
             geom_point(mapping = aes(colour = Athlete, shape = Type),
@@ -70,6 +118,5 @@ split.graph <- ggplot(data = d, mapping = aes(x = Date, y = Time)) +
                   legend.text = element_text(size = 10),
                   panel.grid.major.y = element_line(linetype = "solid", colour = "grey", size = 0.5))
 
-print(jump.graph)
+print(split.graph)
 ```
-
